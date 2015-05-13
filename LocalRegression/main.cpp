@@ -7,9 +7,9 @@
 using namespace std;
 
 int main(int argc,char *argv[]) {
-	if (argc < 3) {
+	if (argc < 5) {
 		cout << endl;
-		cout << "Usage: " << argv[0] << " <filename of X> <filename of Y>" << endl;
+		cout << "Usage: " << argv[0] << " <filename of X> <filename of Y> <ratio for training data> <sigma>" << endl;
 		cout << endl;
 
 		return -1;
@@ -24,37 +24,45 @@ int main(int argc,char *argv[]) {
 	cv::Mat_<double> normalizedY, meanY, stddevY;
 	ml::normalizeDataset(Y, normalizedY, meanY, stddevY);
 
-	ml::addBias(normalizedX);
-
 	cv::Mat_<double> trainingX, testX;
-	ml::splitDataset(normalizedX, 0.9, trainingX, testX);
+	ml::splitDataset(normalizedX, atof(argv[3]), trainingX, testX);
 	cv::Mat_<double> trainingY, testY;
-	ml::splitDataset(normalizedY, 0.9, trainingY, testY);
+	ml::splitDataset(normalizedY, atof(argv[3]), trainingY, testY);
 	
-#if 0
-	LocalLinearRegression llr(trainingX, trainingY, atof(argv[3]));
+#if 1
+	LocalLinearRegression llr;
 
-	double rmse = 0.0;
-	for (int i = 0; i < testX.rows; i += 10) {
-		cv::Mat_<double> normalized_y_hat = llr.predict(testX.row(i));
-		rmse += sqrt(ml::mat_sum(ml::mat_square(testY.row(i) - normalized_y_hat)));
+	cv::Mat_<double> predY(testY.rows, testY.cols);
+	for (int i = 0; i < testX.rows; ++i) {
+		//cout << testX.row(i) << endl;
+
+		cv::Mat_<double> normalized_y_hat = llr.predict(trainingX, trainingY, testX.row(i), atof(argv[4]));
+
+		//cout << normalized_y_hat << endl;
+		//cout << testY.row(i) << endl;
+
+		normalized_y_hat.copyTo(predY.row(i));
 	}
-	rmse /= testX.rows / 10;
+	double rmse = ml::rmse(testY, predY);
 
-	cout << rmse << endl;
+	ml::saveDataset("trueX.txt", testX);
+	ml::saveDataset("trueY.txt", testY);
+	ml::saveDataset("predY.txt", predY);
+
+	cout << "RMSE: " << rmse << endl;
 #endif
 
-#if 1
-	ofstream ofs("results2.txt");
-	for (double sigma = 0.01; sigma < 0.1; sigma += 0.01) {
+#if 0
+	ofstream ofs("results.txt");
+	for (double sigma = 0.1; sigma < 100; sigma += 5) {
 		LocalLinearRegression llr(trainingX, trainingY, sigma);
 
-		double rmse = 0.0;
+		cv::Mat_<double> predY(testY.rows, testY.cols);
 		for (int i = 0; i < testX.rows; ++i) {
 			cv::Mat_<double> normalized_y_hat = llr.predict(testX.row(i));
-			rmse += sqrt(ml::mat_sum(ml::mat_square(testY.row(i) - normalized_y_hat)));
+			normalized_y_hat.copyTo(predY.row(i));
 		}
-		rmse /= testX.rows;
+		double rmse = ml::rmse(testY, predY);
 
 		cout << sigma << "," << rmse << endl;
 		ofs << sigma << "," << rmse << endl;
