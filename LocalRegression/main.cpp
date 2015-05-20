@@ -43,7 +43,7 @@ int main(int argc,char *argv[]) {
 
 		normalized_y_hat.copyTo(predY.row(i));
 	}
-	double rmse = ml::rmse(testY, predY);
+	double rmse = ml::rmse(testY, predY, true);
 
 	ml::saveDataset("trueX.txt", testX);
 	ml::saveDataset("trueY.txt", testY);

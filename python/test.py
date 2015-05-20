@@ -17,7 +17,14 @@ def lowess(x, y, f=2./3., iter=3):
     function will run faster with a smaller number of iterations."""
     n = len(x)
     r = int(ceil(f*n))
+    
+    print x
+    
     h = [np.sort(np.abs(x - x[i]))[r] for i in range(n)]
+    print h
+
+    print (x[:,None] - x[None,:]) /h
+    
     w = np.clip(np.abs((x[:,None] - x[None,:]) / h), 0.0, 1.0)
     w = (1 - w**3)**3
     yest = np.zeros(n)
@@ -25,12 +32,18 @@ def lowess(x, y, f=2./3., iter=3):
     for iteration in range(iter):
         for i in range(n):
             weights = delta * w[:,i]
+            print weights*y
+            print np.sum(weights*y)
+            print np.sum(weights*y*x)
+                        
             b = np.array([np.sum(weights*y), np.sum(weights*y*x)])
             A = np.array([[np.sum(weights), np.sum(weights*x)],
                    [np.sum(weights*x), np.sum(weights*x*x)]])
             beta = linalg.solve(A, b)
             yest[i] = beta[0] + beta[1]*x[i]
- 
+            break
+        break
+        
         residuals = y - yest
         s = np.median(np.abs(residuals))
         delta = np.clip(residuals / (6.0 * s), -1, 1)
